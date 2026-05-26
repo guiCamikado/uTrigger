@@ -3,15 +3,14 @@ import { createWorker } from "tesseract.js";
 import cv from "@techstark/opencv-js";
 import { ocrSpace } from "ocr-space-api-wrapper";
 
-const OCR_API_KEY = import.meta.env.OCR_API_KEY;
+const OCR_API_KEY = import.meta.env.VITE_OCR_API_KEY;
 
-
-export default function CameraCapture() {
+export default function CameraCapture({ insertFakeValue, onPhotoTaken }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
   const [photo, setPhoto] = useState(null);
-  const [delay, setDelay] = useState(2000);
+  const [delay, setDelay] = useState(0);
 
   async function startCamera() {
     try {
@@ -40,62 +39,43 @@ export default function CameraCapture() {
         canvas.height = video.videoHeight;
 
         const ctx = canvas.getContext("2d");
-
-        // captura da câmera
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // OpenCV
-        let src = cv.imread(canvas);
-        let gray = new cv.Mat();
-        let blur = new cv.Mat();
-        let thresh = new cv.Mat();
-
-        // converte para cinza
-        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-        // reduz ruído
-        cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-        // preto e branco
-        cv.threshold(blur, thresh, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
-        // inverter (muitos displays ficam melhores assim)
-        cv.bitwise_not(thresh, thresh);
-        // mostra resultado no mesmo canvas
-        cv.imshow(canvas, thresh);
+        onPhotoTaken?.(); // <-- timestamp capturado AQUI, junto com a foto
 
         const processedImage = canvas.toDataURL("image/jpeg");
         setPhoto(processedImage);
-
-        src.delete();
-        gray.delete();
-        blur.delete();
-        thresh.delete();
 
         resolve(processedImage);
       }, delay);
     });
   }
 
-  async function readDisplay(image) {
+  async function readDisplay(imageDataURL) {
+    // Converte dataURL para Blob (necessário para enviar como arquivo)
+    const blob = await fetch(imageDataURL).then((res) => res.blob());
+
+    const formData = new FormData();
+    formData.append("file", blob, "image.jpg");
+    formData.append("apikey", OCR_API_KEY);
+    formData.append("language", "eng");
+    formData.append("OCREngine", "2");
+    formData.append("scale", "true");
+    formData.append("isOverlayRequired", "false");
+
     try {
-      const result = await ocrSpace(
-        image,
-        {
-          apiKey: OCR_API_KEY,
-          language: "eng",
-          OCREngine: "2",
-          scale: true,
-          isOverlayRequired: false,
-        },
-      );
+      const response = await fetch("https://api.ocr.space/parse/image", {
+        method: "POST",
+        body: formData,
+      });
 
+      const result = await response.json();
       const texto = result?.ParsedResults?.[0]?.ParsedText || "";
-
-      // deixa apenas números
       const numero = texto.replace(/[^0-9.-]/g, "").trim();
-
       console.log(numero);
       return numero;
     } catch (err) {
-      console.log(err);
+      console.error("Erro na requisição OCR Space:", err);
     }
   }
 
@@ -111,20 +91,10 @@ export default function CameraCapture() {
           const image = await takePicture();
           await readDisplay(image);
         }}
-        className="col-span-1 h-40 rounded-xl bg-blue-600 hover:bg-blue-500 transition text-xl font-bold shadow-lg" // ✅ Fix 3
+        className="col-span-2 h-40 rounded-xl bg-blue-600 hover:bg-blue-500 transition text-xl font-bold shadow-lg"
       >
         Tirar Foto
       </button>
-
-      <div className="h-40 col-span-1 bg-zinc-800 rounded-xl border border-zinc-700 p-4 flex flex-col justify-center">
-        <label className="text-sm text-zinc-400 mb-2">Picture Delay (ms)</label>
-        <input
-          type="number"
-          value={delay}
-          onChange={(e) => setDelay(Number(e.target.value))}
-          className="bg-zinc-700 rounded-lg p-2 outline-none"
-        />
-      </div>
 
       <video
         ref={videoRef}
