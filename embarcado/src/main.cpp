@@ -10,8 +10,8 @@ Servo servo;
 
 void setup() {
   Serial.begin(115200);
-  wifi.startWifi("ESP32", "camikado");
-  // wifi.connectToWifi(***REMOVED***" ", "***REMOVED***");
+  // wifi.startWifi("ESP32", "camikado");
+  wifi.connectToWifi(***REMOVED***" ", "***REMOVED***");
   wifi.api.servo.begin();
   wifi.api.initiateRoutes();
   wifi.led.setup();
