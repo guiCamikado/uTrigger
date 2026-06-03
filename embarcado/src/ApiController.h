@@ -1,105 +1,153 @@
-// Classe responsavel pelas apis
 #pragma once
 
 #include <Arduino.h>
-#include <JsonHandler.h>
+#include <ArduinoJson.h>
 #include <LittleFS.h>
-#include <WebServer.h>
 #include <WiFi.h>
+#include <WebServer.h>
+#include <HTTPSServer.hpp>
+#include <SSLCert.hpp>
 
+#include "keys/cert.h"
+#include "keys/private_key.h"
 #include "ServoMotor.h"
+
+using namespace httpsserver;
 
 class ApiController {
 private:
-  String _measurementUnit;         // Unidade de medida para calculo
-  unsigned long _hitscore;         // Tempo que se deverá acertar
-  unsigned long _pictureTimeFrame; // Tempo da foto digitada manualmente
-  unsigned long _pictureTime;      // Tempo em que foto foi tirada desde a abertura da página
-  unsigned long _sentTime;         // Tempo em que foto foi enviada desde a abertura da página
-  unsigned long _timeScored;       // Tempo em que foi acertado ("Se maior que hitscore deverá subtrair se menor somar a
-                                   // diferença para próxima tentativa")
+  WebServer _httpServer;       // porta 80 — só /control
+  SSLCert *_cert;
+  HTTPSServer *_httpsServer;   // porta 443 — só frontend
 
-  void loadDefaultHttpOptionsConfig() // Define configurações de rota
-  {
-    server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.sendHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
-    server.send(204);
+  static ApiController *_instance;
+
+  // ── HTTPS: frontend ──────────────────────────────────────────
+  static void handleRootStatic(HTTPRequest *req, HTTPResponse *res)   { _instance->handleRoot(req, res); }
+  static void handleAssetsStatic(HTTPRequest *req, HTTPResponse *res) { _instance->handleAssets(req, res); }
+  static void handle404Static(HTTPRequest *req, HTTPResponse *res)    { _instance->handle404(req, res); }
+
+  void handleRoot(HTTPRequest *req, HTTPResponse *res) {
+    File file = LittleFS.open("/index.html", "r");
+    if (!file) { res->setStatusCode(404); res->println("index.html nao encontrado"); return; }
+    res->setHeader("Content-Type", "text/html");
+    uint8_t buf[512];
+    while (file.available()) { size_t n = file.read(buf, sizeof(buf)); res->write(buf, n); }
+    file.close();
   }
 
-  String getArgs() // Recebe Post
-  {
-    server.sendHeader("Access-Control-Allow-Origin", "*");
+  void handleAssets(HTTPRequest *req, HTTPResponse *res) {
+    String path = String(req->getRequestString().c_str());
+    File file = LittleFS.open(path, "r");
+    if (!file) { res->setStatusCode(404); res->println("Arquivo nao encontrado"); return; }
 
-    // Serial.println("--- /control POST recebido ---");
-    // Serial.print("Num args: ");
-    // Serial.println(server.args());
+    if      (path.endsWith(".js"))   res->setHeader("Content-Type", "application/javascript");
+    else if (path.endsWith(".css"))  res->setHeader("Content-Type", "text/css");
+    else if (path.endsWith(".png"))  res->setHeader("Content-Type", "image/png");
+    else if (path.endsWith(".html")) res->setHeader("Content-Type", "text/html");
+    else                             res->setHeader("Content-Type", "application/octet-stream");
 
-    if (!server.hasArg("plain")) {
-      Serial.println("Erro: sem body");
-      server.send(400, "application/json", "{\"error\":\"no body\"}");
-      return "{}";
+    uint8_t buf[512];
+    while (file.available()) { size_t n = file.read(buf, sizeof(buf)); res->write(buf, n); }
+    file.close();
+  }
+
+  void handle404(HTTPRequest *req, HTTPResponse *res) {
+    String path = String(req->getRequestString().c_str());
+    File file = LittleFS.open(path, "r");
+    if (!file) { res->setStatusCode(404); res->println("404 Not Found"); return; }
+
+    if      (path.endsWith(".html")) res->setHeader("Content-Type", "text/html");
+    else if (path.endsWith(".js"))   res->setHeader("Content-Type", "application/javascript");
+    else if (path.endsWith(".css"))  res->setHeader("Content-Type", "text/css");
+    else if (path.endsWith(".png"))  res->setHeader("Content-Type", "image/png");
+    else                             res->setHeader("Content-Type", "application/octet-stream");
+
+    uint8_t buf[512];
+    while (file.available()) { size_t n = file.read(buf, sizeof(buf)); res->write(buf, n); }
+    file.close();
+  }
+
+  // ── HTTP: /control (sem TLS) ─────────────────────────────────
+  static void handleControlStatic() { _instance->handleControl(); }
+
+  void handleControl() {
+    _httpServer.sendHeader("Access-Control-Allow-Origin", "*");
+    _httpServer.sendHeader("Access-Control-Allow-Headers", "*");
+    _httpServer.sendHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+
+    if (_httpServer.method() == HTTP_OPTIONS) {
+      _httpServer.send(204);
+      return;
     }
-    String json = server.arg("plain");
-    return json;
+
+    if (!_httpServer.hasArg("plain")) {
+      _httpServer.send(400, "application/json", "{\"success\":false,\"error\":\"sem body\"}");
+      return;
+    }
+
+    const String &body = _httpServer.arg("plain");
+
+    DynamicJsonDocument doc(512);
+    if (deserializeJson(doc, body)) {
+      _httpServer.send(400, "application/json", "{\"success\":false,\"error\":\"JSON invalido\"}");
+      return;
+    }
+
+    servo.cheatLogic(
+      doc["hitscore"].as<unsigned long>(),
+      doc["pictureTime"].as<unsigned long>(),
+      doc["sendTime"].as<unsigned long>(),
+      doc["pictureTimeFrame"].as<unsigned long>(),
+      doc["timeScored"].as<unsigned long>()
+    );
+
+    _httpServer.send(200, "application/json", "{\"success\":true}");
   }
 
 public:
-  WebServer server;
-  JsonHandler json;
   ServoMotor servo{25};
 
-  // ApiController() : servo(25) {}
+  ApiController() : _httpServer(80), _cert(nullptr), _httpsServer(nullptr) { _instance = this; }
 
-  void initiateRoutes() {
-    LittleFS.begin(true);
-    server.serveStatic("/", LittleFS, "/");
-    // server.on("/", HTTP_GET, [this]() {
-    //   server.sendHeader("Access-Control-Allow-Origin", "*");
-    //   server.send(200, "text/plain", "API ONLINE");
-    // });
+  void begin() {
+    servo.begin();
 
-    server.on("/control", HTTP_OPTIONS, [this]() { this->loadDefaultHttpOptionsConfig(); });
-    server.on("/control", HTTP_POST, [this]() {
-      const String data = this->getArgs();
+    if (!LittleFS.begin(true)) {
+      Serial.println("Erro ao montar LittleFS!");
+      return;
+    }
+    Serial.println("LittleFS OK");
 
-      JsonObject itemsArray = json.stringToObject(data);
+    // ── HTTP na 80: só /control ───────────────────────────────
+    _httpServer.on("/control", handleControlStatic);
+    _httpServer.begin();
+    Serial.println("HTTP Server iniciado na porta 80");
 
-      _hitscore = itemsArray["hitscore"].as<long>();
-      _measurementUnit = itemsArray["measurementUnity"].as<String>();
-      _pictureTimeFrame = itemsArray["pictureTimeFrame"].as<long>();
-      _pictureTime = itemsArray["pictureTime"].as<unsigned long>();
-      _sentTime = itemsArray["sendTime"].as<unsigned long>();
-      _timeScored = itemsArray["timeScored"].as<unsigned long>();
+    // ── HTTPS na 443: só frontend ─────────────────────────────
+    _cert = new SSLCert(
+      (unsigned char *)server_cert, sizeof(server_cert),
+      (unsigned char *)private_key,  sizeof(private_key)
+    );
+    _httpsServer = new HTTPSServer(_cert);
 
-      // Função que seta a inicialização do relógio
-      servo.cheatLogic(_hitscore, _pictureTime, _sentTime, _pictureTimeFrame, _timeScored);
+    ResourceNode *nodeRoot   = new ResourceNode("/",         "GET", handleRootStatic);
+    ResourceNode *nodeAssets = new ResourceNode("/assets/*", "GET", handleAssetsStatic);
+    ResourceNode *node404    = new ResourceNode("",          "GET", handle404Static);
 
-      // servo.scheduleKillCheat(timeLeftToTrigger, 25, 180);
-      // servo.moveFoward(); //WIP
-      // delay(5000);
-      // servo.moveBackward();
+    _httpsServer->registerNode(nodeRoot);
+    _httpsServer->registerNode(nodeAssets);
+    _httpsServer->setDefaultNode(node404);
 
-      server.send(200, "application/json", "{\"success\":true}");
-    });
-
-    server.onNotFound([this]() {
-      File file = LittleFS.open("/index.html", "r");
-
-      if (!file) {
-        server.send(404, "text/plain", "index.html not found");
-        return;
-      }
-
-      server.streamFile(file, "text/html");
-      file.close();
-    });
-    server.begin();
-    // Serial.println("Servidor HTTP iniciado");
+    _httpsServer->start();
+    Serial.println("HTTPS Server iniciado na porta 443");
   }
 
   void handle() {
-    server.handleClient();
+    _httpServer.handleClient();
+    if (_httpsServer) _httpsServer->loop();
     servo.update();
   }
 };
+
+ApiController *ApiController::_instance = nullptr;

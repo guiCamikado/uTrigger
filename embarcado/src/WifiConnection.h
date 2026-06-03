@@ -4,7 +4,7 @@
 #include <JsonHandler.h>
 #include <WebServer.h>
 #include <WiFi.h>
-#include <espSignal.h>
+#include <MorseLed.h>
 
 #include <ApiController.h>
 
@@ -41,7 +41,7 @@ public:
   WebServer server;
   JsonHandler json;
   ApiController api;
-  EspSignal led;
+  MorseLed led;
 
   WifiConnection() : server(80) {}
 
@@ -60,22 +60,19 @@ public:
 
   void connectToWifi(const char *ssid, const char *password) {
     WiFi.mode(WIFI_STA);
-    // Serial.print("Conectando em: ");
-    // Serial.println(ssid);
-    // Serial.print(", ");
-    // Serial.print(password);
     WiFi.begin(ssid, password);
 
+    Serial.println("Conectando");
     while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
+      delay(50);
       Serial.print(".");
     }
-    // Serial.println();
-    // Serial.println("WiFi conectado!");
+    Serial.println("WiFi conectado!");
+    Serial.println("");
     Serial.print("IP: ");
     Serial.println(WiFi.localIP());
 
-    api.initiateRoutes();
+    // api.begin();
   }
 
   void handle() {
