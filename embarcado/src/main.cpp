@@ -2,12 +2,14 @@
 
 #include "ApiController.h"
 #include "WifiConnection.h"
-#include <ESP32Servo.h>
+// #include <ESP32Servo.h>
+#include "Piston.h"
+
 #include <MorseLed.h>
 
 WifiConnection wifi;
 // ApiController api;
-Servo servo;
+// Servo servo;
 MorseLed morse;
 
 void setup() {
@@ -21,5 +23,5 @@ void setup() {
 
 void loop() {
   wifi.handle();
-  morse.handle();
+  // morse.handle();
 }

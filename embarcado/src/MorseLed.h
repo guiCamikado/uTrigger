@@ -4,18 +4,14 @@
 class MorseLed {
 private:
   const int pin = 2;
-
   const char *text = "entao voce sabe ler morse   neeeeerd";
 
   int charIndex = 0;
   int symbolIndex = 0;
 
   String morse = "";
-
   unsigned long lastTime = 0;
-
   bool ledState = false;
-
   const int dotTime = 60;
 
   String toMorse(char c) {
@@ -77,48 +73,37 @@ private:
     default:
       return " ";
     }
-
     return "";
   }
 
 public:
   void setup() {
     pinMode(pin, OUTPUT);
-
     morse = toMorse(text[0]);
   }
 
   void handle() {
     if (millis() - lastTime < dotTime) return;
-
     lastTime = millis();
 
     // espaço
     if (morse == " ") {
       digitalWrite(pin, LOW);
-
       delay(dotTime * 4);
-
       nextLetter();
       return;
     }
 
     ledState = !ledState;
-
     if (ledState) {
       digitalWrite(pin, HIGH);
-
       if (morse[symbolIndex] == '-') { delay(dotTime * 2); }
-
     } else {
       digitalWrite(pin, LOW);
-
       symbolIndex++;
-
       // próxima letra
       if (symbolIndex >= morse.length()) {
         delay(dotTime * 2);
-
         nextLetter();
       }
     }
@@ -126,16 +111,12 @@ public:
 
   void nextLetter() {
     symbolIndex = 0;
-
     charIndex++;
-
     // loop infinito
     if (text[charIndex] == '\0') {
       charIndex = 0;
-
       delay(dotTime * 6);
     }
-
     morse = toMorse(text[charIndex]);
   }
 };
