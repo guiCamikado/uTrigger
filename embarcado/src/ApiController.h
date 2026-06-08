@@ -180,7 +180,7 @@ public:
     _httpServer.handleClient();
     if (_httpsServer) _httpsServer->loop();
     // servo.update();
-    piston.handle()
+    piston.handle();
   }
 };
 

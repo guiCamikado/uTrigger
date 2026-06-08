@@ -4,39 +4,69 @@
 
 class Piston {
 private:
-  long _timeToActivate = 0;
-  long _delayToStart = 5000;
-  unsigned long _timer = micros();
-  bool _isWorking = false;
+  unsigned long _timeToActivate = 0;
+  unsigned long _delayToStart = 5000000UL; // 5s
+  unsigned long _startTime = 0;            // Referência fixa
+
+  enum Estado { IDLE, AGUARDANDO_CLIQUE1, CLIQUE1_ATIVO, AGUARDANDO_CLIQUE2, CLIQUE2_ATIVO };
+  Estado _estado = IDLE;
 
 public:
+  int pino = 27;
+  int pino2 = 26;
   void begin(long timeToHit, long timeScored) {
-    // Ativa e desativa pistão dando inicio ao funcionamento.
-    _isWorking = true;
+    pinMode(pino, OUTPUT);
+    pinMode(pino2, OUTPUT);
+    _startTime = micros();
+
     if (timeScored != 0) {
-      _timeToActivate = (timeToHit * 1000) - (timeScored * 1000);
-      _timer = micros();
+      _timeToActivate = (unsigned long)(timeToHit + (timeToHit - timeScored)) * 1000UL;
     } else {
-      _timeToActivate = timeToHit * 1000;
-      _timer = micros();
+      _timeToActivate = (unsigned long)timeToHit * 1000UL;
     }
+    _estado = AGUARDANDO_CLIQUE1;
   }
 
   void handle() {
-    if (!_isWorking) { return; }
+    if (_estado == IDLE) { return; }
 
-    if (_timer + _delayToStart <= micros()) { pinMode(23, HIGH); }
-    if (_timer + _delayToStart + 2000000UL <= micros()) { pinMode(23, LOW); }
+    switch (_estado) {
 
-    if ((_timer + _timeToActivate) <= micros()) {
-      pinMode(23, LOW);
-      return;
-    }
-    pinMode(23, HIGH);
-    _timer = micros();
-    if (_timer + 2000000UL) {
-      pinMode(23, LOW);
-      _isWorking = false;
+    case AGUARDANDO_CLIQUE1:
+      if (micros() >= _startTime + _delayToStart) {
+        digitalWrite(pino, HIGH);
+        digitalWrite(pino2, HIGH);
+        Serial.println("CliqueInicial");
+        _estado = CLIQUE1_ATIVO;
+      }
+      break;
+    case CLIQUE1_ATIVO:
+      if (micros() >= _startTime + _delayToStart + 2000000UL) {
+        digitalWrite(pino, LOW);
+        digitalWrite(pino2, LOW);
+        Serial.println("DesativaçãoDoClickInicial");
+        _estado = AGUARDANDO_CLIQUE2;
+      }
+      break;
+    case AGUARDANDO_CLIQUE2:
+      if (micros() >= _startTime + _delayToStart + _timeToActivate) {
+        digitalWrite(pino, HIGH);
+        digitalWrite(pino2, HIGH);
+        Serial.println("Segundo Clique");
+        _estado = CLIQUE2_ATIVO;
+      }
+      break;
+    case CLIQUE2_ATIVO:
+      if (micros() >= _startTime + _delayToStart + _timeToActivate + 2000000UL) {
+        digitalWrite(pino, LOW);
+        digitalWrite(pino2, LOW);
+        Serial.println("Desativação do Segundo Clique");
+        _estado = IDLE;
+      }
+      break;
+
+    default:
+      break;
     }
   }
 };
