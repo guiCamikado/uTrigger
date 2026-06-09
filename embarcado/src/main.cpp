@@ -11,17 +11,23 @@ WifiConnection wifi;
 // ApiController api;
 // Servo servo;
 MorseLed morse;
+TaskHandle_t pistonTaskHandle;
 
 void setup() {
   Serial.begin(115200);
-  wifi.startWifi("ESP32", "camikado");
-  // wifi.connectToWifi(***REMOVED***" ", "***REMOVED***");
+  // wifi.startWifi("ESP32", "camikado");
+  wifi.connectToWifi(***REMOVED***" ", "***REMOVED***");
   wifi.api.begin();
   wifi.led.setup();
   morse.setup();
 }
 
 void loop() {
-  wifi.handle();
+  if (wifi.api.piston._estado == Piston::IDLE)
+  {
+    wifi.handle();
+  }
+  
+  wifi.api.piston.handle();
   // morse.handle();
 }

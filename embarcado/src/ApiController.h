@@ -17,7 +17,6 @@ using namespace httpsserver;
 
 class ApiController {
 private:
-  Piston piston;
   WebServer _httpServer; // porta 80 — só /control
   SSLCert *_cert;
   HTTPSServer *_httpsServer; // porta 443 — só frontend
@@ -121,12 +120,12 @@ private:
 
     const String &body = _httpServer.arg("plain");
 
-    DynamicJsonDocument doc(512);
+    // DynamicJsonDocument doc(512);
+    JsonDocument doc;
     if (deserializeJson(doc, body)) {
       _httpServer.send(400, "application/json", "{\"success\":false,\"error\":\"JSON invalido\"}");
       return;
     }
-
     // servo.cheatLogic(
     //   doc["hitscore"].as<unsigned long>(),
     //   doc["pictureTime"].as<unsigned long>(),
@@ -134,19 +133,27 @@ private:
     //   doc["pictureTimeFrame"].as<unsigned long>(),
     //   doc["timeScored"].as<unsigned long>()
     // );
-
     piston.begin(doc["hitscore"].as<unsigned long>(), doc["timeScored"].as<unsigned long>());
 
     _httpServer.send(200, "application/json", "{\"success\":true}");
   }
 
 public:
+  Piston piston;
   // ServoMotor servo{25};
 
   ApiController() : _httpServer(80), _cert(nullptr), _httpsServer(nullptr) { _instance = this; }
 
   void begin() {
-    // servo.begin();
+    // Deleta objeto caso exista.
+    if (_httpsServer) {
+      delete _httpsServer;
+      _httpsServer = nullptr;
+    }
+    if (_cert) {
+      delete _cert;
+      _cert = nullptr;
+    }
 
     if (!LittleFS.begin(true)) {
       Serial.println("Erro ao montar LittleFS!");

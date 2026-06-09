@@ -71,12 +71,10 @@ public:
     Serial.println("");
     Serial.print("IP: ");
     Serial.println(WiFi.localIP());
-
-    // api.begin();
   }
 
   void handle() {
     api.handle();
-    led.handle(); // Pelo WIFI travar a aplicação até conectar isso deverá ser alterado caso a lógica mude!
+    // led.handle(); // Conexão com WIFI trava a aplicação então o led não executa até a finalização do mesmo podendo esse ser instanciado em qualquer lugar do main
   }
 };
