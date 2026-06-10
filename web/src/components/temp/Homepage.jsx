@@ -5,7 +5,7 @@ import ItemHolder from "../atoms/wrappers/ItemHolder";
 import CentralTitle from "../atoms/titles/CentralTitle";
 import DefaultInput from "../atoms/inputs/DefaultInput";
 // Molecules
-import CameraCapture from "../organisms/CameraCapture";
+// import CameraCapture from "../organisms/CameraCapture";
 // JS Classes
 import LocalStorage from "../../utils/LocalStorageSaver";
 import HttpClient from "../../utils/httpClient";
@@ -54,13 +54,13 @@ export default function Homepage() {
               </div>
 
               {/* Delay */}
-              <CameraCapture
+              {/* <CameraCapture
                 insertFakeValue={sendActionTimeStamp}
                 onPhotoTaken={() => sendActionTimeStamp("pictureTime")}
-              />
+              /> */}
 
               {/* Set Unity */}
-              <div className="flex items-center font-medium text-zinc-300">
+              {/* <div className="flex items-center font-medium text-zinc-300">
                 Tempo na foto
               </div>
 
@@ -71,7 +71,7 @@ export default function Homepage() {
                   placeholder={"10000"}
                   onChange={handleEventInput}
                 />
-              </div>
+              </div> */}
 
               {/* timeMissCorrection */}
               <div className="flex items-center font-medium text-zinc-300">
@@ -97,6 +97,7 @@ export default function Homepage() {
                   type="text"
                   name="postAddress"
                   placeholder="192.168.0.1/source?"
+                  value="192.168.1.1/control"
                   onChange={(e) => {
                     handleEventInput(e);
                     setUrlLink("http://" + e.target.value);
