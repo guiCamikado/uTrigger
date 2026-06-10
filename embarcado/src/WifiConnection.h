@@ -2,9 +2,9 @@
 
 #include <Arduino.h>
 #include <JsonHandler.h>
+#include <MorseLed.h>
 #include <WebServer.h>
 #include <WiFi.h>
-#include <MorseLed.h>
 
 #include <ApiController.h>
 
@@ -36,6 +36,11 @@ private:
     server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
     server.send(204);
   }
+  enum Mode { AP_MODE, STA_MODE }; // AP Roteia, STA se conecta
+  Mode _estado;
+
+  const char *_ssid;
+  const char *_password;
 
 public:
   WebServer server;
@@ -46,6 +51,10 @@ public:
   WifiConnection() : server(80) {}
 
   void startWifi(const char *ssid, const char *password) {
+    _ssid = ssid;
+    _password = password;
+    _estado = AP_MODE;
+
     IPAddress ip(192, 168, 1, 1);
     IPAddress gateway(192, 168, 1, 1);
     IPAddress subnet(255, 255, 255, 0);
@@ -59,6 +68,10 @@ public:
   }
 
   void connectToWifi(const char *ssid, const char *password) {
+    _ssid = ssid;
+    _password = password;
+    _estado = STA_MODE;
+
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
 
@@ -73,8 +86,20 @@ public:
     Serial.println(WiFi.localIP());
   }
 
+  void turnOff() { WiFi.mode(WIFI_OFF); }
+
+  void turnOn() {
+    if (WiFi.getMode() != WIFI_OFF) return;
+    if (_estado == AP_MODE) {
+      startWifi(_ssid, _password);
+    } else {
+      connectToWifi(_ssid, _password);
+    }
+  }
+
   void handle() {
     api.handle();
-    // led.handle(); // Conexão com WIFI trava a aplicação então o led não executa até a finalização do mesmo podendo esse ser instanciado em qualquer lugar do main
+    // led.handle(); // Conexão com WIFI trava a aplicação então o led não executa até a finalização do mesmo podendo
+    // esse ser instanciado em qualquer lugar do main
   }
 };
