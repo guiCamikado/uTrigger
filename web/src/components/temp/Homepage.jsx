@@ -13,18 +13,18 @@ import HttpClient from "../../utils/httpClient";
 export default function Homepage() {
   const [data, setData] = useState({});
   const [urlLink, setUrlLink] = useState("");
+  const [ipToSend, setIpToSend] = useState("192.168.1.1/control");
 
   const handleEventInput = (e) => {
     LocalStorage.handleEventInput(e, data, setData);
   };
 
-  const sendActionTimeStamp = (key) => {
-    let timeNow = performance.now() * 1000;
-    LocalStorage.insertFakeValue(key, timeNow, data, setData);
-  };
-
   const sendData = (urlLink, data) => {
     HttpClient.sendData(urlLink, data);
+  };
+
+  const getResponse = async (urlLink) => {
+    return await HttpClient.getResponse(urlLink);
   };
 
   function handleSubmit(e) {
@@ -36,13 +36,12 @@ export default function Homepage() {
     <ItemHolder
       elements={
         <>
-          <CentralTitle text={"Camera Timing Config"} />
-
+          <CentralTitle text={"Configurar"} />
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-4 gap-4">
               {/* Hit Score */}
               <div className="flex items-center font-medium text-zinc-300">
-                Tempo Alvo
+                Tempo Alvo:
               </div>
               <div className="col-span-3">
                 <DefaultInput
@@ -53,29 +52,9 @@ export default function Homepage() {
                 />
               </div>
 
-              {/* Delay */}
-              {/* <CameraCapture
-                insertFakeValue={sendActionTimeStamp}
-                onPhotoTaken={() => sendActionTimeStamp("pictureTime")}
-              /> */}
-
-              {/* Set Unity */}
-              {/* <div className="flex items-center font-medium text-zinc-300">
-                Tempo na foto
-              </div>
-
-              <div className="col-span-3">
-                <DefaultInput
-                  type={"number"}
-                  name={"pictureTimeFrame"}
-                  placeholder={"10000"}
-                  onChange={handleEventInput}
-                />
-              </div> */}
-
               {/* timeMissCorrection */}
               <div className="flex items-center font-medium text-zinc-300">
-                Time Scored
+                Tempo após tentativa:
               </div>
 
               <div className="col-span-3">
@@ -89,7 +68,7 @@ export default function Homepage() {
 
               {/* Send Address */}
               <div className="flex items-center font-medium text-zinc-300">
-                Adress
+                Endereço de Envio:
               </div>
 
               <div className="col-span-3">
@@ -97,8 +76,9 @@ export default function Homepage() {
                   type="text"
                   name="postAddress"
                   placeholder="192.168.0.1/source?"
-                  value="192.168.1.1/control"
+                  value={ipToSend}
                   onChange={(e) => {
+                    setIpToSend(e.target.value);
                     handleEventInput(e);
                     setUrlLink("http://" + e.target.value);
                   }}
@@ -112,6 +92,7 @@ export default function Homepage() {
                   const finalData = {
                     ...data,
                     sendTime: timeNow,
+                    reset: false,
                   };
 
                   LocalStorage.insertFakeValue(
@@ -123,9 +104,30 @@ export default function Homepage() {
 
                   sendData(urlLink, finalData);
                 }}
-                className="col-span-4 h-40 rounded-xl bg-blue-600 hover:bg-blue-500 transition text-xl font-bold shadow-lg"
+                className="col-span-3 h-40 rounded-xl bg-blue-600 hover:bg-blue-500 transition text-xl font-bold shadow-lg"
               >
-                Enviar
+                Iniciar Dispositivo
+              </button>
+
+              <button
+                onClick={() => {
+                  const finalData = {
+                    ...data,
+                    reset: true,
+                  };
+
+                  LocalStorage.insertFakeValue(
+                    "sendTime",
+                    { reset: true },
+                    finalData,
+                    setData,
+                  );
+
+                  sendData(urlLink, finalData);
+                }}
+                className="col-span-1 h-40 rounded-xl bg-yellow-600 hover:bg-yellow-500 transition text-xl font-bold shadow-lg"
+              >
+                Reiniciar Dispositivo
               </button>
             </div>
           </form>
