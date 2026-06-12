@@ -10,33 +10,14 @@
 
 class WifiConnection {
 private:
-  String getArgs() // Recebe Post
-  {
-    server.sendHeader("Access-Control-Allow-Origin", "*");
-
-    // Wip
-    Serial.println("--- /control POST recebido ---");
-    Serial.print("Num args: ");
-    Serial.println(server.args());
-
-    if (!server.hasArg("plain")) {
-      Serial.println("Erro: sem body");
-      server.send(400, "application/json", "{\"error\":\"no body\"}");
-      return "{}";
-    }
-    String json = server.arg("plain");
-    Serial.print("Body: ");
-    Serial.println(json);
-    return json;
-  }
-  void loadDefaultHttpOptionsConfig() // Define configurações de rota
+  void loadDefaultHttpOptionsConfig() // Defines route config.
   {
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.sendHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
     server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
     server.send(204);
   }
-  enum Mode { AP_MODE, STA_MODE }; // AP Roteia, STA se conecta
+  enum Mode { AP_MODE, STA_MODE }; // AP routes, STA connects
   Mode _estado;
 
   const char *_ssid;
@@ -59,6 +40,7 @@ public:
     IPAddress gateway(192, 168, 1, 1);
     IPAddress subnet(255, 255, 255, 0);
 
+    WiFi.disconnect(true, true);
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(ip, gateway, subnet);
     WiFi.softAP(ssid, password);
@@ -72,6 +54,7 @@ public:
     _password = password;
     _estado = STA_MODE;
 
+    WiFi.disconnect(true, true);
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
 
@@ -86,20 +69,26 @@ public:
     Serial.println(WiFi.localIP());
   }
 
-  void turnOff() { WiFi.mode(WIFI_OFF); }
+  void turnOff() {
+    if (WiFi.getMode() == WIFI_OFF) return;
+
+    api.stopServers();
+    WiFi.mode(WIFI_OFF);
+    Serial.println("WiFi desligado.");
+  }
 
   void turnOn() {
     if (WiFi.getMode() != WIFI_OFF) return;
+
+    // Reconnects to WiFi
     if (_estado == AP_MODE) {
       startWifi(_ssid, _password);
     } else {
       connectToWifi(_ssid, _password);
     }
+
+    api.startServers();
   }
 
-  void handle() {
-    api.handle();
-    // led.handle(); // Conexão com WIFI trava a aplicação então o led não executa até a finalização do mesmo podendo
-    // esse ser instanciado em qualquer lugar do main
-  }
+  void handle() { api.handle(); }
 };

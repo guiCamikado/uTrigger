@@ -8,18 +8,18 @@
 #include <SSLCert.hpp>
 #include <WebServer.h>
 #include <WiFi.h>
+#include <MorseLed.h>
 
 #include "keys/cert.h"
 #include "keys/private_key.h"
-// #include "ServoMotor.h"
 
 using namespace httpsserver;
 
 class ApiController {
 private:
-  WebServer _httpServer; // porta 80 — só /control
+  WebServer _httpServer; // gate 80
   SSLCert *_cert;
-  HTTPSServer *_httpsServer; // porta 443 — só frontend
+  HTTPSServer *_httpsServer; // gate 443
 
   static ApiController *_instance;
 
@@ -100,7 +100,7 @@ private:
     file.close();
   }
 
-  // ── HTTP: /control (sem TLS) ─────────────────────────────────
+  // ── HTTP: /control (without TLS) ─────────────────────────────────
   static void handleControlStatic() { _instance->handleControl(); }
 
   void handleControl() {
@@ -119,20 +119,24 @@ private:
     }
 
     const String &body = _httpServer.arg("plain");
-
-    // DynamicJsonDocument doc(512);
     JsonDocument doc;
     if (deserializeJson(doc, body)) {
       _httpServer.send(400, "application/json", "{\"success\":false,\"error\":\"JSON invalido\"}");
       return;
     }
-    // servo.cheatLogic(
-    //   doc["hitscore"].as<unsigned long>(),
-    //   doc["pictureTime"].as<unsigned long>(),
-    //   doc["sendTime"].as<unsigned long>(),
-    //   doc["pictureTimeFrame"].as<unsigned long>(),
-    //   doc["timeScored"].as<unsigned long>()
-    // );
+
+    // Reset button
+    if (doc["reset"].as<bool>() == true) {
+      _httpServer.send(200, "application/json", "{\"success\":true,\"message\":\"restarting\"}");
+      _httpServer.stop(); // Para servidor e libera memória
+
+      delay(2000);
+      ESP.restart();
+      return;
+    }
+    
+    // start button
+    MorseLed::turnOff();
     piston.begin(doc["hitscore"].as<unsigned long>(), doc["timeScored"].as<unsigned long>());
 
     _httpServer.send(200, "application/json", "{\"success\":true}");
@@ -140,12 +144,11 @@ private:
 
 public:
   Piston piston;
-  // ServoMotor servo{25};
 
   ApiController() : _httpServer(80), _cert(nullptr), _httpsServer(nullptr) { _instance = this; }
 
   void begin() {
-    // Deleta objeto caso exista.
+    // Deletes objects if exists avoiding memory leak
     if (_httpsServer) {
       delete _httpsServer;
       _httpsServer = nullptr;
@@ -161,12 +164,12 @@ public:
     }
     Serial.println("LittleFS OK");
 
-    // ── HTTP na 80: só /control ───────────────────────────────
+    // ── HTTP in 80 (only /control) ───────────────────────────────
     _httpServer.on("/control", handleControlStatic);
     _httpServer.begin();
     Serial.println("HTTP Server iniciado na porta 80");
 
-    // ── HTTPS na 443: só frontend ─────────────────────────────
+    // ── HTTPS in 443: (only front-end) ───────────────────────────
     _cert = new SSLCert((unsigned char *)server_cert, sizeof(server_cert), (unsigned char *)private_key,
                         sizeof(private_key));
     _httpsServer = new HTTPSServer(_cert);
@@ -183,11 +186,29 @@ public:
     Serial.println("HTTPS Server iniciado na porta 443");
   }
 
+  // Stop servers in a clean way before turn off WiFi
+  void stopServers() {
+    Serial.println("Parando servidores...");
+    _httpServer.close(); // fecha o socket HTTP (porta 80)
+    if (_httpsServer) {
+      _httpsServer->stop(); // fecha conexões TLS e o socket HTTPS (porta 443)
+    }
+    Serial.println("Servidores parados.");
+  }
+
+  // Start servers again after WiFi reconnects
+  void startServers() {
+    Serial.println("Iniciando servidores...");
+    _httpServer.begin(); // re-bind porta 80
+    if (_httpsServer) {
+      _httpsServer->start(); // re-bind porta 443
+    }
+    Serial.println("Servidores iniciados.");
+  }
+
   void handle() {
     _httpServer.handleClient();
     if (_httpsServer) _httpsServer->loop();
-    // servo.update();
-    piston.handle();
   }
 };
 

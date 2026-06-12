@@ -1,8 +1,7 @@
 #pragma once
-
 #include <ESP32Servo.h>
 
-// Classe referente ao uso do servoMotor
+// This class is for the use of a servoMotor (In case of the piston not being userfull)
 class ServoMotor {
 private:
   Servo servo;
@@ -11,13 +10,9 @@ private:
   int _signalPin = 25;
   bool _waitingReturn = false;
   bool _waitingTrigger = false;
-  // unsigned long _timeToReturn = 0;
 
 public:
-  // // Construtor padrão (necessário para instanciar sem argumentos)
-  // ServoMotor() : _signalPin(0) {}
-
-  // Construtor com pino
+  // Bob the builder
   ServoMotor(int signalPin) : _signalPin(signalPin) {}
 
   void begin() {
@@ -42,14 +37,14 @@ public:
     Serial.println(timeRemaining);
 
     if (timeRemaining <= 0) {
-      // Já passou o tempo — dispara imediatamente
+      // If time already passed - discharge imediattly
       Serial.println("[servo] disparo imediato!");
       servo.write(_defaultSpin);
       _timeToTrigger = micros() + 5000000UL;
       _waitingReturn = true;
       _waitingTrigger = false;
     } else {
-      // Agenda o disparo
+      // schedule a discharge
       _timeToTrigger = micros() + (unsigned long)timeRemaining;
       _waitingTrigger = true;
       Serial.print("[servo] agendado em us: ");
@@ -57,7 +52,6 @@ public:
     }
   }
 
-  // Chamar no loop() — NÃO bloqueante
   void update() {
     if (_waitingTrigger && ((long)(micros() - _timeToTrigger) >= 0)) {
       servo.write(_defaultSpin);

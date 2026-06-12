@@ -1,4 +1,4 @@
-// Esse código é para caso seja preferivel a utilização de um pistão no lugar do servo.
+// This code is for the use of a piston (instead of the servoMotor)
 #pragma once
 #include <Arduino.h>
 
@@ -6,7 +6,7 @@ class Piston {
 private:
   uint32_t _timeToActivate = 0;
   uint32_t _delayToStart = 5000000UL; // 5s
-  uint32_t _startTime = 0;            // Referência fixa
+  uint32_t _startTime = 0;            // Fixed time reference
 
   uint32_t _click1Start;
   uint32_t _click1End;
@@ -78,13 +78,13 @@ public:
 
         Serial.println("======== LOG DATA =======");
         Serial.println("Time Start: ");
-        Serial.println(micros());
+        Serial.println(_timeStart);
         Serial.print("Time End: ");
-        Serial.println(micros());
+        Serial.println(_timeEnd);
         Serial.println("Delay do primeiro clique ao segundo clique: ");
         Serial.print(_timeEnd - _timeStart);
         Serial.println(" us");
-        Serial.print((_timeEnd - _timeStart) / 100);
+        Serial.print((_timeEnd - _timeStart) / 1000);
         Serial.println(" ms");
         Serial.println("========= END LOG DATA ======");
         _estado = IDLE;
