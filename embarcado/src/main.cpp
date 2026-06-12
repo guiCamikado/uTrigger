@@ -13,7 +13,7 @@ TaskHandle_t pistonTaskHandle;
 void setup() {
   Serial.begin(115200);
   // wifi.startWifi("ESP32", "camikado");
-  wifi.connectToWifi(***REMOVED***" ", "***REMOVED***");
+  wifi.connectToWifi(***REMOVED***" ", ***REMOVED***" ");
   wifi.api.begin();
   wifi.led.setup();
   morse.setup();
