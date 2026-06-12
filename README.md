@@ -24,8 +24,8 @@ First you need to have PlatformIO extension installed in VsCode.
 3. You are going to need to config the main.cpp with one of the connections
 
 ```cpp
-wifi.startWifi("ESP32", "camikado"); // For AP
-wifi.connectToWifi(***REMOVED***" ", ***REMOVED***" "); // For STA
+wifi.startWifi("SSID", "Secret_Password"); // For AP
+wifi.connectToWifi("SSID", "Secret_Password"); // For STA
 ```
 
 4. Once the dependecies are installed and the application is configured you can use the build button that is found bellow as a checkmark "✔️"
