@@ -38,7 +38,7 @@ export default function CameraCapture({ insertFakeValue, onPhotoTaken }) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        onPhotoTaken?.(); // <-- timestamp capturado AQUI, junto com a foto
+        onPhotoTaken?.(); // <-- Captures TimeStamp
 
         const processedImage = canvas.toDataURL("image/jpeg");
         setPhoto(processedImage);
@@ -49,7 +49,7 @@ export default function CameraCapture({ insertFakeValue, onPhotoTaken }) {
   }
 
   async function readDisplay(imageDataURL) {
-    // Converte dataURL para Blob (necessário para enviar como arquivo)
+    // Converts dataURL to Blob (Needed to send)
     const blob = await fetch(imageDataURL).then((res) => res.blob());
 
     const formData = new FormData();

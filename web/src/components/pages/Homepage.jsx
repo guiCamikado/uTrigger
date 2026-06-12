@@ -1,14 +1,10 @@
-// Libs & React
 import { useEffect, useState } from "react";
-// Atoms
-import ItemHolder from "../atoms/wrappers/ItemHolder";
-import CentralTitle from "../atoms/titles/CentralTitle";
-import DefaultInput from "../atoms/inputs/DefaultInput";
-// Molecules
-// import CameraCapture from "../organisms/CameraCapture";
-// JS Classes
+import ItemHolder from "../atoms/ItemHolder";
+import CentralTitle from "../atoms/CentralTitle";
+import DefaultInput from "../atoms/DefaultInput";
 import LocalStorage from "../../utils/LocalStorageSaver";
 import HttpClient from "../../utils/httpClient";
+import DefaultButton from "../atoms/DefaultButtons";
 
 export default function Homepage() {
   const [data, setData] = useState({});
@@ -21,10 +17,6 @@ export default function Homepage() {
 
   const sendData = (urlLink, data) => {
     HttpClient.sendData(urlLink, data);
-  };
-
-  const getResponse = async (urlLink) => {
-    return await HttpClient.getResponse(urlLink);
   };
 
   function handleSubmit(e) {
@@ -85,50 +77,47 @@ export default function Homepage() {
                 />
               </div>
 
-              <button
+              <DefaultButton
                 onClick={() => {
                   const timeNow = performance.now() * 1000;
-
                   const finalData = {
                     ...data,
                     sendTime: timeNow,
                     reset: false,
                   };
-
                   LocalStorage.insertFakeValue(
                     "sendTime",
                     timeNow,
                     finalData,
                     setData,
                   );
-
                   sendData(urlLink, finalData);
                 }}
-                className="col-span-3 h-40 rounded-xl bg-blue-600 hover:bg-blue-500 transition text-xl font-bold shadow-lg"
-              >
-                Iniciar Dispositivo
-              </button>
+                className={
+                  "col-span-3 h-40 rounded-xl bg-blue-600 hover:bg-blue-500 transition text-xl font-bold shadow-lg"
+                }
+                Text={"Iniciar Dispositivo"}
+              />
 
-              <button
+              <DefaultButton
                 onClick={() => {
                   const finalData = {
                     ...data,
                     reset: true,
                   };
-
                   LocalStorage.insertFakeValue(
                     "sendTime",
                     { reset: true },
                     finalData,
                     setData,
                   );
-
                   sendData(urlLink, finalData);
                 }}
-                className="col-span-1 h-40 rounded-xl bg-yellow-600 hover:bg-yellow-500 transition text-xl font-bold shadow-lg"
-              >
-                Reiniciar Dispositivo
-              </button>
+                className={
+                  "col-span-1 h-40 rounded-xl bg-yellow-600 hover:bg-yellow-500 transition text-xl font-bold shadow-lg"
+                }
+                Text={"Reiniciar Dispositivo"}
+              />
             </div>
           </form>
         </>
