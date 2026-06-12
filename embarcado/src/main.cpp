@@ -12,8 +12,8 @@ TaskHandle_t pistonTaskHandle;
 
 void setup() {
   Serial.begin(115200);
-  // wifi.startWifi("ESP32", "camikado");
-  wifi.connectToWifi(***REMOVED***" ", ***REMOVED***" ");
+  // wifi.startWifi("SSID", "Secret_Password");
+  wifi.connectToWifi("SSID", "Secret_Password");
   wifi.api.begin();
   wifi.led.setup();
   morse.setup();
