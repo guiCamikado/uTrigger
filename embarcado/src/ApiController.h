@@ -4,11 +4,11 @@
 #include <ArduinoJson.h>
 #include <HTTPSServer.hpp>
 #include <LittleFS.h>
+#include <MorseLed.h>
 #include <Piston.h>
 #include <SSLCert.hpp>
 #include <WebServer.h>
 #include <WiFi.h>
-#include <MorseLed.h>
 
 #include "keys/cert.h"
 #include "keys/private_key.h"
@@ -20,7 +20,6 @@ private:
   WebServer _httpServer; // gate 80
   SSLCert *_cert;
   HTTPSServer *_httpsServer; // gate 443
-
   static ApiController *_instance;
 
   // ── HTTPS: frontend ──────────────────────────────────────────
@@ -104,6 +103,9 @@ private:
   static void handleControlStatic() { _instance->handleControl(); }
 
   void handleControl() {
+    JsonDocument doc;
+    const String &body = _httpServer.arg("plain");
+
     _httpServer.sendHeader("Access-Control-Allow-Origin", "*");
     _httpServer.sendHeader("Access-Control-Allow-Headers", "*");
     _httpServer.sendHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -118,8 +120,6 @@ private:
       return;
     }
 
-    const String &body = _httpServer.arg("plain");
-    JsonDocument doc;
     if (deserializeJson(doc, body)) {
       _httpServer.send(400, "application/json", "{\"success\":false,\"error\":\"JSON invalido\"}");
       return;
@@ -134,7 +134,7 @@ private:
       ESP.restart();
       return;
     }
-    
+
     // start button
     MorseLed::turnOff();
     piston.begin(doc["hitscore"].as<unsigned long>(), doc["timeScored"].as<unsigned long>());

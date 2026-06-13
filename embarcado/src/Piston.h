@@ -60,6 +60,7 @@ public:
         digitalWrite(pino, LOW);
         digitalWrite(pino2, LOW);
         _estado = AGUARDANDO_CLIQUE2;
+
       }
       break;
     case AGUARDANDO_CLIQUE2:
@@ -69,6 +70,7 @@ public:
         _estado = CLIQUE2_ATIVO;
 
         _timeEnd = micros();
+
       }
       break;
     case CLIQUE2_ATIVO:

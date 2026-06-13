@@ -20,7 +20,7 @@ class HttpClient {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ping: true}),
+      body: JSON.stringify({ ping: true }),
     });
 
     return response.status;
@@ -31,6 +31,7 @@ class HttpClient {
       const response = await fetch(urlLink, {
         method: "POST",
         headers: {
+          // "Content-Type": "application/x-www-form-urlencoded",
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),

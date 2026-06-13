@@ -3,6 +3,7 @@
 #include "ApiController.h"
 #include "Piston.h"
 #include "WifiConnection.h"
+#include "keys/secretKeys.h"
 
 #include <MorseLed.h>
 
@@ -12,8 +13,9 @@ TaskHandle_t pistonTaskHandle;
 
 void setup() {
   Serial.begin(115200);
-  // wifi.startWifi("SSID", "Secret_Password");
-  wifi.connectToWifi("SSID", "Secret_Password");
+
+  // wifi.startWifi(AP_SSID, AP_PASSWORD);
+  wifi.connectToWifi(STA_SSID, STA_PASSWORD);
   wifi.api.begin();
   wifi.led.setup();
   morse.setup();
